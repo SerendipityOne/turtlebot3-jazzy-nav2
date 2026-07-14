@@ -1,0 +1,12 @@
+/build/
+/install/
+/log/
+/CMakeFiles/
+/.vscode/
+
+*.pyc
+__pycache__/
+*.swp
+*~
+.DS_Store
+

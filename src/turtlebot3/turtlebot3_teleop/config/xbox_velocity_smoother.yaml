@@ -1,0 +1,22 @@
+velocity_smoother:
+  ros__parameters:
+    use_sim_time: false
+    smoothing_frequency: 20.0
+    scale_velocities: false
+    feedback: "OPEN_LOOP"
+    max_velocity: [0.22, 0.0, 1.5]
+    min_velocity: [-0.22, 0.0, -1.5]
+    deadband_velocity: [0.0, 0.0, 0.0]
+    velocity_timeout: 0.25
+    max_accel: [1.0, 0.0, 3.2]
+    max_decel: [-1.0, 0.0, -3.2]
+    odom_topic: "odom"
+    odom_duration: 0.1
+    use_realtime_priority: false
+    enable_stamped_cmd_vel: true
+
+lifecycle_manager_xbox_teleop:
+  ros__parameters:
+    use_sim_time: false
+    autostart: true
+    node_names: ["velocity_smoother"]
