@@ -32,7 +32,7 @@ def generate_launch_description():
 
     use_sim_time = LaunchConfiguration('use_sim_time', default='true')
     x_pose = LaunchConfiguration('x_pose', default='-2.0')
-    y_pose = LaunchConfiguration('y_pose', default='-0.5')
+    y_pose = LaunchConfiguration('y_pose', default='0.5')
 
     world = os.path.join(
         get_package_share_directory('turtlebot3_gazebo'),

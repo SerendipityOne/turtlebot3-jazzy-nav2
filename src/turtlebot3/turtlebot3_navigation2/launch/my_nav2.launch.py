@@ -30,9 +30,9 @@ ROS_DISTRO = os.environ.get('ROS_DISTRO')
 
 def generate_launch_description():
     use_sim_time = LaunchConfiguration('use_sim_time')
-    initial_pose_x = LaunchConfiguration('initial_pose_x')
-    initial_pose_y = LaunchConfiguration('initial_pose_y')
-    initial_pose_yaw = LaunchConfiguration('initial_pose_yaw')
+    initial_pose_x = LaunchConfiguration('initial_pose_x', default="0.0")
+    initial_pose_y = LaunchConfiguration('initial_pose_y', default="1")
+    initial_pose_yaw = LaunchConfiguration('initial_pose_yaw', default="0.0")
     map_dir = LaunchConfiguration(
         'map',
         default=os.path.join(
@@ -87,7 +87,7 @@ def generate_launch_description():
 
         DeclareLaunchArgument(
             'initial_pose_y',
-            default_value='0.0',
+            default_value='1.0',
             description='Initial AMCL y position in the map frame'),
 
         DeclareLaunchArgument(

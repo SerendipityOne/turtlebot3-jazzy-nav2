@@ -3,6 +3,9 @@
 /log/
 /CMakeFiles/
 /.vscode/
+/docs/
+/bags/
+/maps/
 
 *.pyc
 __pycache__/

@@ -22,7 +22,7 @@ public:
   : Node("initial_pose_publisher"), deadline_(std::chrono::steady_clock::now() + 30s)
   {
     x_ = declare_parameter<double>("initial_pose_x", -2.0);
-    y_ = declare_parameter<double>("initial_pose_y", -0.5);
+    y_ = declare_parameter<double>("initial_pose_y", 0.5);
     yaw_ = declare_parameter<double>("initial_pose_yaw", 0.0);
 
     publisher_ = create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(

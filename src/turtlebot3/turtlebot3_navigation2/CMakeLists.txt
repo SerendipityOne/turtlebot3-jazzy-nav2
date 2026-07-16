@@ -31,7 +31,7 @@ ament_target_dependencies(initial_pose_publisher
 # Install
 ################################################################################
 install(
-  DIRECTORY launch map param rviz
+  DIRECTORY behavior_trees launch map param rviz
   DESTINATION share/${PROJECT_NAME}
 )
 
