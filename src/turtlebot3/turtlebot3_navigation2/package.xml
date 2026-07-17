@@ -18,7 +18,14 @@
   <depend>geometry_msgs</depend>
   <depend>lifecycle_msgs</depend>
   <exec_depend>nav2_bringup</exec_depend>
+  <exec_depend>nav2_mppi_controller</exec_depend>
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>rviz2</exec_depend>
+  <exec_depend>slam_toolbox</exec_depend>
   <depend>rclcpp</depend>
+
   <export>
     <build_type>ament_cmake</build_type>
   </export>
