@@ -1,6 +1,6 @@
 # TurtleBot3 Jazzy SLAM 与 Nav2 工作区
 
-这是一个面向教学与验证的 ROS 2 Jazzy 工作区，集成 TurtleBot3、Gazebo Sim、Cartographer SLAM 和 Nav2。它可用于在 `turtlebot3_house` 场景中完成建图、保存地图、定位和自主导航的完整流程。
+这是一个面向教学与验证的 ROS 2 Jazzy 工作区，集成 TurtleBot3、Gazebo Sim、Cartographer、Slam Toolbox 和 Nav2。它可用于在 `turtlebot3_house` 场景中完成建图、保存地图、定位和自主导航的完整流程。
 
 ## 功能
 
@@ -8,6 +8,12 @@
 - 使用 Cartographer 构建二维栅格地图。
 - 使用键盘或 Xbox 手柄遥控驱动仿真机器人完成建图。
 - 使用 Nav2 在内置或保存的地图上完成定位和导航。
+
+## 学习文档
+
+- [Slam Toolbox 建图到 Nav2 优化全流程](docs/slam-toolbox-nav2-workflow.md)：从统一 rosbag 建图、地图验收到分阶段导航优化的可执行 Runbook。
+- [2D SLAM 与 Nav2 优化学习指南](docs/2d-slam-nav2-learning-guide.md)：Cartographer/Slam Toolbox A/B、SmacPlanner2D 和 MPPI 的原理与配置。
+- [实验记录模板](docs/experiment-record.md)：记录输入、参数校验值、固定 waypoint 和量化结果。
 
 ## 环境要求
 

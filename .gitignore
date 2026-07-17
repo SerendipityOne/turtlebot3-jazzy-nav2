@@ -3,10 +3,11 @@
 /log/
 /CMakeFiles/
 /.vscode/
+/bags/
+/maps/
 
 *.pyc
 __pycache__/
 *.swp
 *~
 .DS_Store
-
