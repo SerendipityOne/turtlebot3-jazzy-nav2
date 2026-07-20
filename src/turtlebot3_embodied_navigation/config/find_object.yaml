@@ -1,0 +1,29 @@
+find_object_server:
+  ros__parameters:
+    allowed_classes: [cup, bottle, backpack, ball, box]
+    allowed_colors: [red, green, blue, yellow, unknown]
+    allowed_rooms: [kitchen, living_room, bedroom, unknown]
+    approach_distance: 0.8
+    task_timeout: 300.0
+    navigation_timeout: 90.0
+    verification_timeout: 5.0
+    maximum_candidates: 20
+    map_frame: map
+    robot_frame: base_link
+    # x, y, yaw triples. Replace these coordinates after creating a new map.
+    search_viewpoints: [
+      1.083, 1.090, 0.72,
+      0.855, 4.872, 3.14,
+      -1.866, 4.661, 3.02,
+      -4.151, 4.392, -1.60,
+      -4.316, 0.217, -1.60,
+      -4.228, -2.601, -2.90,
+      -4.922, -1.308, 1.33,
+      -3.236, 3.217, 0.00,
+      -0.691, 2.877, -1.27,
+      0.004, 0.989, 0.00
+    ]
+    viewpoint_rooms: [
+      living_room, bedroom, bedroom, bedroom, kitchen,
+      kitchen, kitchen, living_room, living_room, living_room
+    ]
