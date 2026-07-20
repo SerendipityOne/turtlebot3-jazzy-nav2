@@ -1,0 +1,38 @@
+# Goal
+string instruction
+---
+# Result failure codes
+uint8 NONE=0
+uint8 INVALID_INSTRUCTION=1
+uint8 LANGUAGE_API_ERROR=2
+uint8 TARGET_NOT_FOUND=3
+uint8 NAVIGATION_FAILED=4
+uint8 PERCEPTION_TIMEOUT=5
+uint8 TIMEOUT=6
+uint8 CANCELED=7
+
+bool success
+uint8 failure_code
+string message
+string target_class
+string target_color
+string target_room
+geometry_msgs/PoseStamped target_pose
+float32 final_confidence
+builtin_interfaces/Duration elapsed
+---
+# Feedback phases
+uint8 IDLE=0
+uint8 PARSING=1
+uint8 SEARCHING_VIEWPOINTS=2
+uint8 SEARCHING_COVERAGE=3
+uint8 APPROACHING=4
+uint8 VERIFYING=5
+
+uint8 phase
+string phase_name
+string current_region
+uint32 visited_candidates
+uint32 total_candidates
+float32 best_confidence
+builtin_interfaces/Duration elapsed
