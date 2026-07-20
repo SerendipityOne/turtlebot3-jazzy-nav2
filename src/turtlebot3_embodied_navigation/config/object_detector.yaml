@@ -1,0 +1,12 @@
+object_detector:
+  ros__parameters:
+    color_topic: /camera/color/image_raw
+    depth_topic: /camera/depth/image_raw
+    camera_info_topic: /camera/camera_info
+    model_path: ""
+    class_names: [cup, bottle, backpack, ball, box]
+    input_size: 640
+    confidence_threshold: 0.50
+    nms_threshold: 0.45
+    minimum_depth: 0.10
+    maximum_depth: 8.0
