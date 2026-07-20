@@ -75,10 +75,20 @@ def generate_launch_description():
         output='screen',
     )
 
+    image_topics = ['/camera/image_raw']
+    image_remappings = []
+    if TURTLEBOT3_MODEL == 'burger_cam':
+        image_topics = ['/camera/image', '/camera/depth_image']
+        image_remappings = [
+            ('/camera/image', '/camera/color/image_raw'),
+            ('/camera/depth_image', '/camera/depth/image_raw'),
+        ]
+
     start_gazebo_ros_image_bridge_cmd = Node(
         package='ros_gz_image',
         executable='image_bridge',
-        arguments=['/camera/image_raw'],
+        arguments=image_topics,
+        remappings=image_remappings,
         output='screen',
     )
     ld = LaunchDescription()
