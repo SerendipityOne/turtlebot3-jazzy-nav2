@@ -19,7 +19,7 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument(
             'model_path',
-            description='Absolute path to the exported YOLOX-Nano ONNX model'),
+            description='Absolute path to the exported YOLO11n ONNX model'),
         DeclareLaunchArgument('use_sim_time', default_value='true'),
         Node(
             package='turtlebot3_embodied_navigation',

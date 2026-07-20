@@ -1,0 +1,11 @@
+path: datasets/tb3_objects
+train: images/train
+val: images/val
+test: images/test
+
+names:
+  0: cup
+  1: bottle
+  2: backpack
+  3: ball
+  4: box

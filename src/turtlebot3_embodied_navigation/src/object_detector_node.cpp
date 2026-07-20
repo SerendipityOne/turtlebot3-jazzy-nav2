@@ -50,11 +50,11 @@ public:
     maximum_depth_ = declare_parameter("maximum_depth", 8.0);
 
     if (model_path_.empty() || !std::filesystem::is_regular_file(model_path_)) {
-      throw std::runtime_error("model_path must reference a readable YOLOX ONNX file");
+      throw std::runtime_error("model_path must reference a readable YOLO11 ONNX file");
     }
     net_ = cv::dnn::readNetFromONNX(model_path_);
     if (net_.empty()) {
-      throw std::runtime_error("OpenCV failed to load YOLOX ONNX model");
+      throw std::runtime_error("OpenCV failed to load YOLO11 ONNX model");
     }
     net_.setPreferableBackend(cv::dnn::DNN_BACKEND_OPENCV);
     net_.setPreferableTarget(cv::dnn::DNN_TARGET_CPU);
@@ -72,7 +72,7 @@ public:
     sync_.registerCallback(
       std::bind(&ObjectDetectorNode::on_images, this, std::placeholders::_1, std::placeholders::_2));
 
-    RCLCPP_INFO(get_logger(), "Loaded YOLOX model: %s", model_path_.c_str());
+    RCLCPP_INFO(get_logger(), "Loaded YOLO11 model: %s", model_path_.c_str());
   }
 
 private:
@@ -99,26 +99,30 @@ private:
     cv::Mat resized;
     cv::resize(bgr, resized, cv::Size(), scale, scale);
     cv::Mat padded(input_size_, input_size_, CV_8UC3, cv::Scalar(114, 114, 114));
-    resized.copyTo(padded(cv::Rect(0, 0, resized.cols, resized.rows)));
-    cv::Mat blob = cv::dnn::blobFromImage(padded, 1.0, cv::Size(), cv::Scalar(), false, false);
+    const int padding_x = (input_size_ - resized.cols) / 2;
+    const int padding_y = (input_size_ - resized.rows) / 2;
+    resized.copyTo(padded(cv::Rect(padding_x, padding_y, resized.cols, resized.rows)));
+    cv::Mat blob = cv::dnn::blobFromImage(
+      padded, 1.0 / 255.0, cv::Size(), cv::Scalar(), true, false);
 
     try {
       net_.setInput(blob);
       const cv::Mat output = net_.forward();
-      publish_detections(color_message, bgr, depth, output, scale);
+      publish_detections(
+        color_message, bgr, depth, output, scale, padding_x, padding_y);
     } catch (const cv::Exception & error) {
-      RCLCPP_ERROR(get_logger(), "YOLOX inference failed: %s", error.what());
+      RCLCPP_ERROR(get_logger(), "YOLO11 inference failed: %s", error.what());
     }
   }
 
   void publish_detections(
     const Image::ConstSharedPtr & source, cv::Mat & bgr, const cv::Mat & depth,
-    const cv::Mat & output, const double scale)
+    const cv::Mat & output, const double scale, const int padding_x, const int padding_y)
   {
     vision_msgs::msg::Detection3DArray array;
     array.header = source->header;
-    const auto detections = decode_yolox(
-      output, scale, bgr.size(), input_size_, static_cast<int>(class_names_.size()),
+    const auto detections = decode_yolo11(
+      output, scale, bgr.size(), padding_x, padding_y, static_cast<int>(class_names_.size()),
       confidence_threshold_, nms_threshold_);
 
     for (const auto & candidate : detections) {

@@ -1,6 +1,6 @@
 # TurtleBot3 具身找物与 SmolVLA 实现流程
 
-本文档对应 `feature/embodied-object-navigation` 分支，目标是在既有 Slam Toolbox + Nav2 系统上实现“去厨房找红色杯子”一类具身找物任务。ROS 节点使用 C++，ROS 2 launch 使用 Python；YOLOX 训练和 SmolVLA 单独使用 conda，不在 conda 中运行 ROS 2 Jazzy。
+本文档对应 `feature/embodied-object-navigation` 分支，目标是在既有 Slam Toolbox + Nav2 系统上实现“去厨房找红色杯子”一类具身找物任务。ROS 节点使用 C++，ROS 2 launch 使用 Python；YOLO11n 训练和 SmolVLA 单独使用 conda，不在 conda 中运行 ROS 2 Jazzy。
 
 ## 1. 当前实现边界
 
@@ -8,18 +8,18 @@
 
 - Burger 仿真模型的 640x480、15 Hz RGB-D 相机、点云和完整 TF。
 - `FindObject` action 接口。
-- OpenCV DNN + YOLOX ONNX 的 RGB-D 物体检测节点。
+- OpenCV DNN + YOLO11n ONNX 的 RGB-D 物体检测节点。
 - 类别、颜色白名单和 OpenAI 兼容语言接口解析。
 - 搜索视点排序、Nav2 `NavigateToPose`、0.8 m 接近位姿和到达后复核。
 - 目标确认规则：最近 15 帧内至少匹配 7 帧。
-- YOLOX 和 SmolVLA 两套独立 conda 环境。
+- YOLO11n 和 SmolVLA 两套独立 conda 环境。
 - SmolVLA 五种高层技能的本地 HTTP 推理入口。
 
 需要通过实验产生、不会提交到 Git：
 
 - 有明确许可的杯子、瓶子、背包、球和箱子模型资产。
-- 10,000 帧 COCO 格式训练集及其训练结果。
-- YOLOX-Nano `.pth` 和 `.onnx` 权重。
+- 10,000 帧 Ultralytics YOLO 格式训练集及其训练结果。
+- YOLO11n `.pt` 和 `.onnx` 权重。
 - 500 回合 SmolVLA 数据、微调权重和真实成功率。
 
 不应在没有真实实验数据时填写成功率、误检率或 VLA 对比结论。
@@ -33,7 +33,7 @@
   -> 语义搜索视点
   -> Nav2 NavigateToPose
   -> RGB + Depth + CameraInfo
-  -> YOLOX-Nano + 深度中值 + TF(map)
+  -> YOLO11n + 深度中值 + TF(map)
   -> 最近 15 帧至少 7 帧确认
   -> 距目标 0.8 m 的接近位姿
   -> 到达后再次确认
@@ -120,7 +120,7 @@ ros2 launch turtlebot3_navigation2 my_nav2.launch.py \
 
 先在 RViz 校验 AMCL 初始位姿、全局路径和窄通道通行，再启动找物任务。
 
-## 5. YOLOX-Nano 训练与导出
+## 5. YOLO11n 训练与导出
 
 ### 5.1 创建隔离环境
 
@@ -128,25 +128,30 @@ ros2 launch turtlebot3_navigation2 my_nav2.launch.py \
 
 ```bash
 export TB3_WS="$HOME/GitHub/tb3_jazzy_ws"
-conda env create -f "$TB3_WS/ml/yolox/environment.yml"
-conda activate tb3-yolox-train
+conda env create -f "$TB3_WS/ml/yolo11/environment.yml"
+conda activate tb3-yolo11-train
 python --version
 ```
 
-环境固定使用 YOLOX 0.3.0。官方项目采用 Apache-2.0，训练前仍需逐项记录仿真资产的来源、版本和许可证。
+环境固定使用 `ultralytics==8.4.101`，训练模型明确指定 `yolo11n.pt`。Ultralytics 软件和模型采用 AGPL-3.0，商业闭源部署需取得 Ultralytics Enterprise License；开始分发程序或权重前必须先确认许可证路径。仿真资产仍需逐项记录来源、版本和许可证。
 
 ### 5.2 数据契约
 
-数据集采用 COCO 目录结构：
+数据集采用 Ultralytics YOLO 检测目录结构：
 
 ```text
 datasets/tb3_objects/
-├── train2017/
-├── val2017/
-└── annotations/
-    ├── instances_train.json
-    └── instances_val.json
+├── images/
+│   ├── train/
+│   ├── val/
+│   └── test/
+└── labels/
+    ├── train/
+    ├── val/
+    └── test/
 ```
+
+每张图片对应一个同名 `.txt`；每行格式为 `class_id center_x center_y width height`，四个坐标均归一化到 `[0, 1]`。数据集入口为 `ml/yolo11/tb3_objects.yaml`。
 
 类别顺序必须与运行节点一致：
 
@@ -172,38 +177,46 @@ datasets/tb3_objects/
 
 ```bash
 export TB3_WS="$HOME/GitHub/tb3_jazzy_ws"
-export TB3_COCO_DATASET="$TB3_WS/datasets/tb3_objects"
-export YOLOX_OUTPUT="$TB3_WS/outputs/yolox_nano_tb3"
-conda activate tb3-yolox-train
+export YOLO11_OUTPUT="$TB3_WS/outputs/yolo11n_tb3"
+conda activate tb3-yolo11-train
 cd "$TB3_WS"
-python -m yolox.tools.train \
-  -f "$TB3_WS/ml/yolox/exps/yolox_nano_tb3.py" \
-  -d 1 -b 16 --fp16 -o \
-  --experiment-name yolox_nano_tb3
+yolo detect train \
+  model=yolo11n.pt \
+  data="$TB3_WS/ml/yolo11/tb3_objects.yaml" \
+  imgsz=640 epochs=100 batch=16 device=0 \
+  project="$YOLO11_OUTPUT" name=train exist_ok=False
 ```
 
-训练后先对未见 seed 的测试集计算 COCO mAP、逐类召回率和颜色混淆，再导出 ONNX。最终阈值不能只按训练集调整。
-
-### 5.4 导出 ONNX
-
-YOLOX 0.3.0 的官方导出脚本位于其源码仓库。使用固定 tag 获取导出工具，不修改本项目 Git 历史：
+训练后先对未见 seed 的测试集计算 mAP、逐类召回率和颜色混淆，再导出 ONNX。最终阈值不能只按训练集调整。
 
 ```bash
 export TB3_WS="$HOME/GitHub/tb3_jazzy_ws"
-export YOLOX_HOME="$TB3_WS/third_party/YOLOX"
-export YOLOX_CHECKPOINT="$TB3_WS/outputs/yolox_nano_tb3/best_ckpt.pth"
-export YOLOX_ONNX="$TB3_WS/artifacts/yolox_nano_tb3.onnx"
-conda activate tb3-yolox-train
-git clone --branch 0.3.0 --depth 1 \
-  https://github.com/Megvii-BaseDetection/YOLOX.git "$YOLOX_HOME"
-mkdir -p "$TB3_WS/artifacts"
-cd "$YOLOX_HOME"
-python tools/export_onnx.py \
-  --output-name "$YOLOX_ONNX" \
-  -f "$TB3_WS/ml/yolox/exps/yolox_nano_tb3.py" \
-  -c "$YOLOX_CHECKPOINT" \
-  --no-onnxsim
+export YOLO11_CHECKPOINT="$TB3_WS/outputs/yolo11n_tb3/train/weights/best.pt"
+conda activate tb3-yolo11-train
+yolo detect val \
+  model="$YOLO11_CHECKPOINT" \
+  data="$TB3_WS/ml/yolo11/tb3_objects.yaml" \
+  imgsz=640 split=test
 ```
+
+### 5.4 导出 ONNX
+
+导出固定输入尺寸、无内嵌 NMS 的 ONNX，由 C++ 节点执行阈值过滤和按类别 NMS：
+
+```bash
+export TB3_WS="$HOME/GitHub/tb3_jazzy_ws"
+export YOLO11_CHECKPOINT="$TB3_WS/outputs/yolo11n_tb3/train/weights/best.pt"
+export YOLO11_ONNX="$TB3_WS/artifacts/yolo11n_tb3.onnx"
+conda activate tb3-yolo11-train
+mkdir -p "$TB3_WS/artifacts"
+yolo export \
+  model="$YOLO11_CHECKPOINT" \
+  format=onnx imgsz=640 batch=1 opset=17 \
+  simplify=False dynamic=False nms=False
+cp "${YOLO11_CHECKPOINT%.pt}.onnx" "$YOLO11_ONNX"
+```
+
+运行节点预期 5 类模型输出为 `[1, 9, N]` 或 `[1, N, 9]`，其中 `9 = 4 + 5`。不要启用导出期 NMS，否则输出契约不同。
 
 ## 6. 启动感知与找物任务
 
@@ -213,14 +226,14 @@ python tools/export_onnx.py \
 
 ```bash
 export TB3_WS="$HOME/GitHub/tb3_jazzy_ws"
-export YOLOX_ONNX="$TB3_WS/artifacts/yolox_nano_tb3.onnx"
+export YOLO11_ONNX="$TB3_WS/artifacts/yolo11n_tb3.onnx"
 export VLM_API_BASE="https://your-openai-compatible-host/v1"
 export VLM_MODEL="your-model-name"
 export VLM_API_KEY="replace-in-current-shell"
 source /opt/ros/jazzy/setup.bash
 source "$TB3_WS/install/setup.bash"
 ros2 launch turtlebot3_embodied_navigation embodied_navigation.launch.py \
-  model_path:="$YOLOX_ONNX" \
+  model_path:="$YOLO11_ONNX" \
   use_sim_time:=true
 ```
 
@@ -288,7 +301,7 @@ ros2 bag info --sort name "$EMBODIED_BAG"
 
 ### 8.1 创建独立环境
 
-SmolVLA 不安装进 YOLOX 环境，也不在该环境中启动 ROS：
+SmolVLA 不安装进 YOLO11n 环境，也不在该环境中启动 ROS：
 
 ```bash
 export TB3_WS="$HOME/GitHub/tb3_jazzy_ws"
@@ -367,7 +380,7 @@ curl --fail "$SMOLVLA_POLICY_URL/health"
 
 - `ros2 run` 找不到节点：重新构建并 source 工作区，确认 `ros2 pkg executables turtlebot3_embodied_navigation`。
 - 节点报告 `model_path` 无效：ONNX 权重不存在或不是普通文件；节点会 fail-fast。
-- 一直没有 detection：检查 RGB、Depth、CameraInfo 的频率和 optical frame TF，再检查 ONNX 输出是否为 YOLOX 解码后的 `N x (5+C)`。
+- 一直没有 detection：检查 RGB、Depth、CameraInfo 的频率和 optical frame TF，再检查 ONNX 是否为无内嵌 NMS 的 YOLO11 detect 模型，5 类输出应为 `[1, 9, N]` 或 `[1, N, 9]`。
 - 已检测但不能接近：检查目标点从 `camera_depth_optical_frame` 到 `map` 的 TF，以及接近位姿是否落在 inflation layer 内。
 - 语言 action 立即失败：检查三个 `VLM_*` 环境变量；程序不会打印 API key。
 - SmolVLA 服务启动失败：检查权重的 feature schema 是否与 `observation.images.front`、状态维度和五维 action 一致。

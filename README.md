@@ -8,7 +8,7 @@
 - 使用 Cartographer 构建二维栅格地图。
 - 使用键盘或 Xbox 手柄遥控驱动仿真机器人完成建图。
 - 使用 Nav2 在内置或保存的地图上完成定位和导航。
-- 使用 YOLOX-Nano、RGB-D 定位和 Nav2 执行自然语言找物任务。
+- 使用 YOLO11n、RGB-D 定位和 Nav2 执行自然语言找物任务。
 - 使用独立 conda 环境开展 SmolVLA 高层技能选择实验。
 
 ## 学习文档
@@ -16,7 +16,7 @@
 - [Slam Toolbox 建图到 Nav2 优化全流程](docs/slam-toolbox-nav2-workflow.md)：从统一 rosbag 建图、地图验收到分阶段导航优化的可执行 Runbook。
 - [2D SLAM 与 Nav2 优化学习指南](docs/2d-slam-nav2-learning-guide.md)：Cartographer/Slam Toolbox A/B、SmacPlanner2D 和 MPPI 的原理与配置。
 - [实验记录模板](docs/experiment-record.md)：记录输入、参数校验值、固定 waypoint 和量化结果。
-- [具身找物与 SmolVLA 实现流程](docs/embodied-object-navigation-workflow.md)：从 RGB-D 仿真、YOLOX 训练、找物 action 到 SmolVLA 实验的完整 Runbook。
+- [具身找物与 SmolVLA 实现流程](docs/embodied-object-navigation-workflow.md)：从 RGB-D 仿真、YOLO11n 训练、找物 action 到 SmolVLA 实验的完整 Runbook。
 
 ## 环境要求
 
@@ -160,7 +160,7 @@ src/
 └── turtlebot3_simulations/          # Gazebo Sim 场景、机器人模型和桥接配置
 
 ml/
-├── yolox/    # YOLOX-Nano conda 环境和训练配置
+├── yolo11/   # YOLO11n conda 环境、数据集定义和训练配置
 └── smolvla/  # SmolVLA conda 环境和本地策略服务
 ```
 

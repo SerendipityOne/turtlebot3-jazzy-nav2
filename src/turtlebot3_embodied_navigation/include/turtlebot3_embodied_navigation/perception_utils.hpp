@@ -27,9 +27,10 @@ struct Point3D
   double z;
 };
 
-std::vector<Detection2D> decode_yolox(
+std::vector<Detection2D> decode_yolo11(
   const cv::Mat & output, double resize_scale, const cv::Size & image_size,
-  int input_size, int class_count, float confidence_threshold, float nms_threshold);
+  int padding_x, int padding_y, int class_count, float confidence_threshold,
+  float nms_threshold);
 
 float median_depth(
   const cv::Mat & depth, const cv::Rect & box, float minimum_depth, float maximum_depth);

@@ -35,3 +35,65 @@ TEST(PerceptionUtils, ClassifiesConfiguredColors)
   EXPECT_EQ(tb3::classify_color(green, cv::Rect(0, 0, 20, 20)), "green");
   EXPECT_EQ(tb3::classify_color(blue, cv::Rect(0, 0, 20, 20)), "blue");
 }
+
+TEST(PerceptionUtils, DecodesYolo11ChannelsFirstOutputAndLetterboxPadding)
+{
+  const int shape[] = {1, 6, 2};
+  cv::Mat output(3, shape, CV_32F, cv::Scalar(0.0F));
+  float * values = output.ptr<float>();
+  const auto set = [values](const int channel, const int candidate, const float value) {
+      values[channel * 2 + candidate] = value;
+    };
+  set(0, 0, 320.0F);
+  set(1, 0, 180.0F);
+  set(2, 0, 100.0F);
+  set(3, 0, 40.0F);
+  set(4, 0, 0.90F);
+  set(5, 0, 0.10F);
+
+  const auto detections = tb3::decode_yolo11(
+    output, 1.0, cv::Size(640, 480), 0, 80, 2, 0.5F, 0.45F);
+
+  ASSERT_EQ(detections.size(), 1U);
+  EXPECT_EQ(detections.front().class_index, 0);
+  EXPECT_FLOAT_EQ(detections.front().confidence, 0.90F);
+  EXPECT_EQ(detections.front().box, cv::Rect(270, 80, 100, 40));
+}
+
+TEST(PerceptionUtils, KeepsOverlappingBoxesFromDifferentClasses)
+{
+  const int shape[] = {1, 6, 2};
+  cv::Mat output(3, shape, CV_32F, cv::Scalar(0.0F));
+  float * values = output.ptr<float>();
+  for (int candidate = 0; candidate < 2; ++candidate) {
+    values[0 * 2 + candidate] = 100.0F;
+    values[1 * 2 + candidate] = 100.0F;
+    values[2 * 2 + candidate] = 40.0F;
+    values[3 * 2 + candidate] = 40.0F;
+  }
+  values[4 * 2] = 0.9F;
+  values[5 * 2 + 1] = 0.8F;
+
+  const auto detections = tb3::decode_yolo11(
+    output, 1.0, cv::Size(640, 480), 0, 0, 2, 0.5F, 0.45F);
+  EXPECT_EQ(detections.size(), 2U);
+}
+
+TEST(PerceptionUtils, DecodesYolo11ChannelsLastOutput)
+{
+  const int shape[] = {1, 2, 6};
+  cv::Mat output(3, shape, CV_32F, cv::Scalar(0.0F));
+  float * values = output.ptr<float>();
+  values[0] = 50.0F;
+  values[1] = 60.0F;
+  values[2] = 20.0F;
+  values[3] = 30.0F;
+  values[4] = 0.10F;
+  values[5] = 0.85F;
+
+  const auto detections = tb3::decode_yolo11(
+    output, 1.0, cv::Size(640, 480), 0, 0, 2, 0.5F, 0.45F);
+  ASSERT_EQ(detections.size(), 1U);
+  EXPECT_EQ(detections.front().class_index, 1);
+  EXPECT_EQ(detections.front().box, cv::Rect(40, 45, 20, 30));
+}

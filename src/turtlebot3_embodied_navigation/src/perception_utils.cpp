@@ -23,47 +23,65 @@ cv::Rect clamp_box(const cv::Rect & box, const cv::Size & size)
 
 }  // namespace
 
-std::vector<Detection2D> decode_yolox(
+std::vector<Detection2D> decode_yolo11(
   const cv::Mat & output, const double resize_scale, const cv::Size & image_size,
-  const int input_size, const int class_count, const float confidence_threshold,
-  const float nms_threshold)
+  const int padding_x, const int padding_y, const int class_count,
+  const float confidence_threshold, const float nms_threshold)
 {
-  if (output.empty() || resize_scale <= 0.0 || input_size <= 0 || class_count <= 0) {
-    throw std::invalid_argument("invalid YOLOX decoder input");
+  if (output.empty() || output.type() != CV_32F || resize_scale <= 0.0 || class_count <= 0) {
+    throw std::invalid_argument("invalid YOLO11 decoder input");
   }
 
-  const int dimensions = class_count + 5;
-  const int rows = static_cast<int>(output.total() / dimensions);
-  if (rows <= 0 || output.total() % dimensions != 0) {
-    throw std::runtime_error("unexpected YOLOX output shape");
+  const int dimensions = class_count + 4;
+  int rows = 0;
+  bool channels_first = false;
+  if (output.dims == 3 && output.size[0] == 1) {
+    if (output.size[1] == dimensions) {
+      channels_first = true;
+      rows = output.size[2];
+    } else if (output.size[2] == dimensions) {
+      rows = output.size[1];
+    }
+  } else if (output.dims == 2) {
+    if (output.rows == dimensions) {
+      channels_first = true;
+      rows = output.cols;
+    } else if (output.cols == dimensions) {
+      rows = output.rows;
+    }
+  }
+  if (rows <= 0 || output.total() != static_cast<std::size_t>(rows * dimensions)) {
+    throw std::runtime_error("unexpected YOLO11 detection output shape");
   }
 
-  const cv::Mat predictions(rows, dimensions, CV_32F, const_cast<float *>(output.ptr<float>()));
+  const cv::Mat predictions = output.isContinuous() ? output : output.clone();
+  const float * values = predictions.ptr<float>();
+  const auto value_at = [values, rows, dimensions, channels_first](const int row, const int column) {
+      return channels_first ? values[column * rows + row] : values[row * dimensions + column];
+    };
   std::vector<cv::Rect> boxes;
   std::vector<float> scores;
   std::vector<int> class_indices;
 
   for (int row = 0; row < rows; ++row) {
-    const float * values = predictions.ptr<float>(row);
-    const float objectness = values[4];
     int best_class = 0;
-    float best_class_score = values[5];
+    float confidence = value_at(row, 4);
     for (int class_index = 1; class_index < class_count; ++class_index) {
-      if (values[5 + class_index] > best_class_score) {
+      const float class_confidence = value_at(row, 4 + class_index);
+      if (class_confidence > confidence) {
         best_class = class_index;
-        best_class_score = values[5 + class_index];
+        confidence = class_confidence;
       }
     }
 
-    const float confidence = objectness * best_class_score;
     if (confidence < confidence_threshold) {
       continue;
     }
 
-    const double center_x = values[0] / resize_scale;
-    const double center_y = values[1] / resize_scale;
-    const double width = values[2] / resize_scale;
-    const double height = values[3] / resize_scale;
+    const double center_x = (value_at(row, 0) - padding_x) / resize_scale;
+    const double center_y = (value_at(row, 1) - padding_y) / resize_scale;
+    const double width = value_at(row, 2) / resize_scale;
+    const double height = value_at(row, 3) / resize_scale;
     cv::Rect box(
       cvRound(center_x - width * 0.5), cvRound(center_y - height * 0.5),
       cvRound(width), cvRound(height));
@@ -76,12 +94,29 @@ std::vector<Detection2D> decode_yolox(
     class_indices.push_back(best_class);
   }
 
-  std::vector<int> selected;
-  cv::dnn::NMSBoxes(boxes, scores, confidence_threshold, nms_threshold, selected);
   std::vector<Detection2D> detections;
-  detections.reserve(selected.size());
-  for (const int index : selected) {
-    detections.push_back({boxes[index], class_indices[index], scores[index]});
+  for (int class_index = 0; class_index < class_count; ++class_index) {
+    std::vector<cv::Rect> class_boxes;
+    std::vector<float> class_scores;
+    std::vector<int> source_indices;
+    for (std::size_t index = 0; index < boxes.size(); ++index) {
+      if (class_indices[index] == class_index) {
+        class_boxes.push_back(boxes[index]);
+        class_scores.push_back(scores[index]);
+        source_indices.push_back(static_cast<int>(index));
+      }
+    }
+    if (class_boxes.empty()) {
+      continue;
+    }
+    std::vector<int> selected;
+    cv::dnn::NMSBoxes(
+      class_boxes, class_scores, confidence_threshold, nms_threshold, selected);
+    for (const int selected_index : selected) {
+      const int source_index = source_indices[selected_index];
+      detections.push_back(
+        {boxes[source_index], class_indices[source_index], scores[source_index]});
+    }
   }
   return detections;
 }
