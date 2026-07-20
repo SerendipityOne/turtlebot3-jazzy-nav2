@@ -1,0 +1,20 @@
+name: tb3-yolox-train
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - numpy=1.26
+  - pytorch=2.5
+  - torchvision=0.20
+  - pytorch-cuda=12.1
+  - pip:
+      - yolox==0.3.0
+      - onnx==1.17.0
+      - onnxruntime-gpu==1.20.1
+      - pycocotools==2.0.8
+      - opencv-python-headless==4.10.0.84
+      - loguru==0.7.3
+      - tensorboard==2.18.0

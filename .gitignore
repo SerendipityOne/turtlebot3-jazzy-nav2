@@ -5,6 +5,15 @@
 /.vscode/
 /bags/
 /maps/
+/artifacts/
+/datasets/
+/outputs/
+/third_party/
+
+*.onnx
+*.pth
+*.pt
+*.safetensors
 
 *.pyc
 __pycache__/

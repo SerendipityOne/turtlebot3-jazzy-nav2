@@ -215,8 +215,12 @@ private:
       target.room, total);
     const auto outcome = navigate_to(goal_handle, approach_pose, started, false);
     if (outcome != NavigationOutcome::SUCCEEDED) {
-      const uint8_t code = outcome == NavigationOutcome::CANCELED ?
-        FindObject::Result::CANCELED : FindObject::Result::NAVIGATION_FAILED;
+      uint8_t code = FindObject::Result::NAVIGATION_FAILED;
+      if (outcome == NavigationOutcome::CANCELED) {
+        code = FindObject::Result::CANCELED;
+      } else if (outcome == NavigationOutcome::TIMED_OUT) {
+        code = FindObject::Result::TIMEOUT;
+      }
       finish(goal_handle, false, code, "failed to reach the target approach pose", target, started);
       return;
     }
@@ -269,26 +273,34 @@ private:
     const auto navigation_started = std::chrono::steady_clock::now();
     while (result_future.wait_for(std::chrono::milliseconds(100)) != std::future_status::ready) {
       if (task->is_canceling()) {
-        nav_client_->async_cancel_goal(nav_goal);
+        cancel_navigation(nav_goal);
         return NavigationOutcome::CANCELED;
       }
       if (expired(task_started)) {
-        nav_client_->async_cancel_goal(nav_goal);
+        cancel_navigation(nav_goal);
         return NavigationOutcome::TIMED_OUT;
       }
       if (stop_on_detection && detection_confirmed()) {
-        nav_client_->async_cancel_goal(nav_goal);
+        cancel_navigation(nav_goal);
         return NavigationOutcome::TARGET_FOUND;
       }
       if (std::chrono::duration<double>(std::chrono::steady_clock::now() - navigation_started).count() >
         navigation_timeout_)
       {
-        nav_client_->async_cancel_goal(nav_goal);
+        cancel_navigation(nav_goal);
         return NavigationOutcome::FAILED;
       }
     }
     return result_future.get().code == rclcpp_action::ResultCode::SUCCEEDED ?
            NavigationOutcome::SUCCEEDED : NavigationOutcome::FAILED;
+  }
+
+  void cancel_navigation(const NavGoalHandle::SharedPtr & goal)
+  {
+    const auto cancel_future = nav_client_->async_cancel_goal(goal);
+    if (cancel_future.wait_for(std::chrono::seconds(2)) != std::future_status::ready) {
+      RCLCPP_WARN(get_logger(), "Nav2 did not acknowledge goal cancellation within 2 seconds");
+    }
   }
 
   std::vector<std::size_t> ordered_candidate_indices(const std::string & room) const

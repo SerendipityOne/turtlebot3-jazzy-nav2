@@ -1,6 +1,6 @@
 # TurtleBot3 Jazzy SLAM 与 Nav2 工作区
 
-这是一个面向教学与验证的 ROS 2 Jazzy 工作区，集成 TurtleBot3、Gazebo Sim、Cartographer、Slam Toolbox 和 Nav2。它可用于在 `turtlebot3_house` 场景中完成建图、保存地图、定位和自主导航的完整流程。
+这是一个面向教学与验证的 ROS 2 Jazzy 工作区，集成 TurtleBot3、Gazebo Sim、Cartographer、Slam Toolbox 和 Nav2。它可用于在 `turtlebot3_house` 场景中完成建图、保存地图、定位、自主导航，以及基于 RGB-D 视觉的具身找物实验。
 
 ## 功能
 
@@ -8,12 +8,15 @@
 - 使用 Cartographer 构建二维栅格地图。
 - 使用键盘或 Xbox 手柄遥控驱动仿真机器人完成建图。
 - 使用 Nav2 在内置或保存的地图上完成定位和导航。
+- 使用 YOLOX-Nano、RGB-D 定位和 Nav2 执行自然语言找物任务。
+- 使用独立 conda 环境开展 SmolVLA 高层技能选择实验。
 
 ## 学习文档
 
 - [Slam Toolbox 建图到 Nav2 优化全流程](docs/slam-toolbox-nav2-workflow.md)：从统一 rosbag 建图、地图验收到分阶段导航优化的可执行 Runbook。
 - [2D SLAM 与 Nav2 优化学习指南](docs/2d-slam-nav2-learning-guide.md)：Cartographer/Slam Toolbox A/B、SmacPlanner2D 和 MPPI 的原理与配置。
 - [实验记录模板](docs/experiment-record.md)：记录输入、参数校验值、固定 waypoint 和量化结果。
+- [具身找物与 SmolVLA 实现流程](docs/embodied-object-navigation-workflow.md)：从 RGB-D 仿真、YOLOX 训练、找物 action 到 SmolVLA 实验的完整 Runbook。
 
 ## 环境要求
 
@@ -101,8 +104,9 @@ ros2 launch turtlebot3_teleop xbox_teleop.launch.py device_id:=1
 完成探索后，在终端 4 保存当前 `/map`：
 
 ```bash
-mkdir -p "$HOME/maps"
-ros2 run nav2_map_server map_saver_cli -f "$HOME/maps/tb3_house"
+export MAP_DIR="$HOME/maps"
+mkdir -p "$MAP_DIR"
+ros2 run nav2_map_server map_saver_cli -f "$MAP_DIR/tb3_house"
 ```
 
 该命令会生成 `$HOME/maps/tb3_house.yaml` 和 `$HOME/maps/tb3_house.pgm`。
@@ -126,9 +130,10 @@ ros2 launch turtlebot3_navigation2 my_nav2.launch.py use_sim_time:=true
 将 `map` 参数替换为保存得到的 YAML 文件的绝对路径：
 
 ```bash
+export MAP_YAML="$HOME/maps/tb3_house.yaml"
 ros2 launch turtlebot3_navigation2 my_nav2.launch.py \
   use_sim_time:=true \
-  map:="$HOME/maps/tb3_house.yaml"
+  map:="$MAP_YAML"
 ```
 
 如果初始定位偏差较大，请在 RViz 中重新设置初始位姿后再发送目标点。
@@ -149,8 +154,14 @@ SLAM 与 Nav2 是前后两个阶段，不应同时运行。
 
 ```text
 src/
-├── turtlebot3/             # TurtleBot3 本体、Cartographer、Nav2 与键盘遥控
-└── turtlebot3_simulations/ # Gazebo Sim 场景、机器人模型和桥接配置
+├── turtlebot3/                      # TurtleBot3 本体、Cartographer、Nav2 与遥控
+├── turtlebot3_embodied_interfaces/  # 具身找物 action 接口
+├── turtlebot3_embodied_navigation/  # RGB-D 感知与任务编排
+└── turtlebot3_simulations/          # Gazebo Sim 场景、机器人模型和桥接配置
+
+ml/
+├── yolox/    # YOLOX-Nano conda 环境和训练配置
+└── smolvla/  # SmolVLA conda 环境和本地策略服务
 ```
 
 ## 常见问题
