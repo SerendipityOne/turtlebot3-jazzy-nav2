@@ -40,7 +40,7 @@ def generate_launch_description():
             'map',
             'tb3_house.yaml'))
 
-    param_file_name = 'my_burger.yaml'
+    param_file_name = 'my_waffle_pi_cam_smac2d_mppi.yaml'
     if ROS_DISTRO == 'humble':
         param_dir = LaunchConfiguration(
             'params_file',

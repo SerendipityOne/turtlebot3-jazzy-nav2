@@ -77,7 +77,7 @@ def generate_launch_description():
 
     image_topics = ['/camera/image_raw']
     image_remappings = []
-    if TURTLEBOT3_MODEL == 'burger_cam':
+    if TURTLEBOT3_MODEL in {'burger_cam', 'waffle_pi_cam'}:
         image_topics = ['/camera/image', '/camera/depth_image']
         image_remappings = [
             ('/camera/image', '/camera/color/image_raw'),

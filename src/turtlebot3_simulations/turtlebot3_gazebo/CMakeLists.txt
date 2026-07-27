@@ -20,12 +20,23 @@ endif()
 # Find ament packages and libraries for ament and system dependencies
 ################################################################################
 find_package(ament_cmake REQUIRED)
+find_package(cv_bridge REQUIRED)
 find_package(ros_gz_sim REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(message_filters REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(OpenCV REQUIRED COMPONENTS core imgcodecs imgproc)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(tf2 REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(vision_msgs REQUIRED)
+find_package(gz_msgs_vendor REQUIRED)
+find_package(gz-msgs REQUIRED)
+find_package(gz_transport_vendor REQUIRED)
+find_package(gz-transport REQUIRED)
 find_package(gz_math_vendor REQUIRED)
 find_package(gz-math REQUIRED)
 find_package(gz_sim_vendor REQUIRED)
@@ -59,6 +70,47 @@ target_link_libraries(${EXEC_NAME}
   tf2::tf2
 )
 
+add_library(dataset_utils src/dataset_utils.cpp)
+target_include_directories(dataset_utils PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+
+add_executable(gso_dataset_generator src/gso_dataset_generator.cpp)
+target_link_libraries(gso_dataset_generator
+  dataset_utils
+  ${OpenCV_LIBRARIES}
+  gz-msgs::gz-msgs
+  gz-transport::gz-transport)
+ament_target_dependencies(gso_dataset_generator
+  cv_bridge message_filters rclcpp sensor_msgs)
+
+add_executable(house_perception_acceptance src/house_perception_acceptance.cpp)
+target_link_libraries(house_perception_acceptance
+  dataset_utils
+  ${OpenCV_LIBRARIES}
+  gz-msgs::gz-msgs
+  gz-transport::gz-transport)
+ament_target_dependencies(house_perception_acceptance
+  cv_bridge geometry_msgs rclcpp sensor_msgs std_msgs tf2 tf2_geometry_msgs tf2_ros vision_msgs)
+
+add_executable(final_perception_acceptance src/final_perception_acceptance.cpp)
+target_link_libraries(final_perception_acceptance
+  dataset_utils
+  ${OpenCV_LIBRARIES}
+  gz-msgs::gz-msgs
+  gz-transport::gz-transport)
+ament_target_dependencies(final_perception_acceptance
+  cv_bridge rclcpp sensor_msgs std_msgs vision_msgs)
+
+add_executable(house_hard_negative_generator src/house_hard_negative_generator.cpp)
+target_link_libraries(house_hard_negative_generator
+  dataset_utils
+  ${OpenCV_LIBRARIES}
+  gz-msgs::gz-msgs
+  gz-transport::gz-transport)
+ament_target_dependencies(house_hard_negative_generator
+  cv_bridge rclcpp sensor_msgs)
+
 set(OBSTACLE_LIBS
   obstacles
   obstacle1
@@ -79,6 +131,11 @@ endforeach()
 ################################################################################
 install(TARGETS
   ${EXEC_NAME}
+  dataset_utils
+  gso_dataset_generator
+  house_hard_negative_generator
+  house_perception_acceptance
+  final_perception_acceptance
   obstacles
   obstacle1
   obstacle2
@@ -92,6 +149,12 @@ install(DIRECTORY launch models params rviz urdf worlds
 install(DIRECTORY include/
   DESTINATION include/
 )
+
+if(BUILD_TESTING)
+  find_package(ament_cmake_gtest REQUIRED)
+  ament_add_gtest(test_dataset_utils test/test_dataset_utils.cpp)
+  target_link_libraries(test_dataset_utils dataset_utils)
+endif()
 
 ################################################################################
 # Macro for ament package
