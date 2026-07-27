@@ -3,11 +3,13 @@
 /log/
 /CMakeFiles/
 /.vscode/
+.env
 /bags/
 /maps/
 /artifacts/
 /datasets/
 /outputs/
+/runs/
 /third_party/
 
 *.onnx

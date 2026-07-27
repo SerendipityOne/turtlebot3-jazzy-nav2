@@ -9,14 +9,13 @@
 - 使用键盘或 Xbox 手柄遥控驱动仿真机器人完成建图。
 - 使用 Nav2 在内置或保存的地图上完成定位和导航。
 - 使用 YOLO11n、RGB-D 定位和 Nav2 执行自然语言找物任务。
-- 使用独立 conda 环境开展 SmolVLA 高层技能选择实验。
 
 ## 学习文档
 
 - [Slam Toolbox 建图到 Nav2 优化全流程](docs/slam-toolbox-nav2-workflow.md)：从统一 rosbag 建图、地图验收到分阶段导航优化的可执行 Runbook。
 - [2D SLAM 与 Nav2 优化学习指南](docs/2d-slam-nav2-learning-guide.md)：Cartographer/Slam Toolbox A/B、SmacPlanner2D 和 MPPI 的原理与配置。
 - [实验记录模板](docs/experiment-record.md)：记录输入、参数校验值、固定 waypoint 和量化结果。
-- [具身找物与 SmolVLA 实现流程](docs/embodied-object-navigation-workflow.md)：从 RGB-D 仿真、YOLO11n 训练、找物 action 到 SmolVLA 实验的完整 Runbook。
+- [具身找球运行手册](docs/embodied-object-navigation-workflow.md)：使用已验证的单类 ball 模型运行语言找物与 Nav2 接近闭环。
 
 ## 环境要求
 
@@ -52,10 +51,10 @@ colcon build --symlink-install
 ```bash
 source /opt/ros/jazzy/setup.bash
 source install/setup.bash
-export TURTLEBOT3_MODEL=burger
+export TURTLEBOT3_MODEL=waffle_pi_cam
 ```
 
-本文档默认使用 `burger`。`my_nav2.launch.py` 使用本项目的 `my_burger.yaml` 参数，因此导航流程应保持该型号。
+本文档默认使用带 RGB-D 相机的 `waffle_pi_cam`。`my_nav2.launch.py` 默认加载 SmacPlanner2D + MPPI 的 `my_waffle_pi_cam_smac2d_mppi.yaml`，并按 Waffle Pi 的 `0.15 m` 半径规划。
 
 ## 启动 Gazebo
 
@@ -158,15 +157,11 @@ src/
 ├── turtlebot3_embodied_interfaces/  # 具身找物 action 接口
 ├── turtlebot3_embodied_navigation/  # RGB-D 感知与任务编排
 └── turtlebot3_simulations/          # Gazebo Sim 场景、机器人模型和桥接配置
-
-ml/
-├── yolo11/   # YOLO11n conda 环境、数据集定义和训练配置
-└── smolvla/  # SmolVLA conda 环境和本地策略服务
 ```
 
 ## 常见问题
 
-- `TURTLEBOT3_MODEL` 未设置：在启动任何 TurtleBot3 相关节点前执行 `export TURTLEBOT3_MODEL=burger`。
+- `TURTLEBOT3_MODEL` 未设置：在启动任何 TurtleBot3 相关节点前执行 `export TURTLEBOT3_MODEL=waffle_pi_cam`。
 - 仿真时间异常：确认 Cartographer 和 Nav2 命令均包含 `use_sim_time:=true`。
 - Nav2 无法定位：确认 Gazebo 使用的场景与地图匹配，并在 RViz 中设置正确的初始位姿。
 
