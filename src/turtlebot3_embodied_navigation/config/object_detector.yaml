@@ -4,9 +4,14 @@ object_detector:
     depth_topic: /camera/depth/image_raw
     camera_info_topic: /camera/camera_info
     model_path: ""
-    class_names: [cup, bottle, backpack, ball, box]
+    # 默认模型仅输出 ball；其他场景元素均应保持为背景。
+    class_names: [ball]
+    publish_all_classes: true
     input_size: 640
-    confidence_threshold: 0.50
+    # ORT Session 创建后不可动态修改；当前值需通过 house 单案例性能门禁。
+    intra_op_threads: 2
+    # 仅使用 ball 验证集、F2 和 precision>=0.60 标定。
+    confidence_threshold: 0.47647647647647645
     nms_threshold: 0.45
     minimum_depth: 0.10
     maximum_depth: 8.0

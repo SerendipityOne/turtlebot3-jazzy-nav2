@@ -17,6 +17,17 @@ struct TargetSpec
   std::string room;
 };
 
+// 构造符合 OpenAI Responses API 严格 JSON Schema 约束的请求体。
+std::string build_responses_request(
+  const std::string & model,
+  const std::string & instruction,
+  const std::vector<std::string> & allowed_classes,
+  const std::vector<std::string> & allowed_colors,
+  const std::vector<std::string> & allowed_rooms);
+
+// 从已完成的 Responses API 响应中取得模型输出文本。
+std::string extract_responses_output_text(const std::string & response_body);
+
 TargetSpec parse_target_json(
   const std::string & response_body,
   const std::vector<std::string> & allowed_classes,

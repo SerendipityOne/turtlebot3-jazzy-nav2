@@ -1,0 +1,6 @@
+object_detector:
+  ros__parameters:
+    class_names: [ball]
+    publish_all_classes: true
+    confidence_threshold: 0.47647647647647645
+    nms_threshold: 0.45

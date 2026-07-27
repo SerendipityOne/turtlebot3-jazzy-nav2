@@ -14,9 +14,11 @@
   <depend>message_filters</depend>
   <depend>nav2_msgs</depend>
   <depend>nlohmann-json-dev</depend>
+  <depend>rcl_interfaces</depend>
   <depend>rclcpp</depend>
   <depend>rclcpp_action</depend>
   <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
   <depend>tf2</depend>
   <depend>tf2_geometry_msgs</depend>
   <depend>tf2_ros</depend>

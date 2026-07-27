@@ -1,6 +1,6 @@
 find_object_server:
   ros__parameters:
-    allowed_classes: [cup, bottle, backpack, ball, box]
+    allowed_classes: [ball]
     allowed_colors: [red, green, blue, yellow, unknown]
     allowed_rooms: [kitchen, living_room, bedroom, unknown]
     approach_distance: 0.8

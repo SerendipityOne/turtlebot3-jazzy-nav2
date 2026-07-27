@@ -12,28 +12,45 @@ find_package(geometry_msgs REQUIRED)
 find_package(message_filters REQUIRED)
 find_package(nav2_msgs REQUIRED)
 find_package(OpenCV REQUIRED COMPONENTS core dnn imgproc)
+find_package(rcl_interfaces REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(turtlebot3_embodied_interfaces REQUIRED)
 find_package(vision_msgs REQUIRED)
 
+set(ONNXRUNTIME_ROOT "$ENV{ONNXRUNTIME_ROOT}" CACHE PATH "ONNX Runtime C++ root")
+if(NOT ONNXRUNTIME_ROOT)
+  get_filename_component(
+    ONNXRUNTIME_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../third_party/onnxruntime" ABSOLUTE)
+endif()
+find_path(ONNXRUNTIME_INCLUDE_DIR onnxruntime_cxx_api.h
+  PATHS "${ONNXRUNTIME_ROOT}/include" NO_DEFAULT_PATH REQUIRED)
+find_library(ONNXRUNTIME_LIBRARY onnxruntime
+  PATHS "${ONNXRUNTIME_ROOT}/lib" NO_DEFAULT_PATH REQUIRED)
+add_library(onnxruntime SHARED IMPORTED)
+set_target_properties(onnxruntime PROPERTIES
+  IMPORTED_LOCATION "${ONNXRUNTIME_LIBRARY}"
+  INTERFACE_INCLUDE_DIRECTORIES "${ONNXRUNTIME_INCLUDE_DIR}")
+
 add_library(embodied_core
   src/detection_history.cpp
   src/instruction_parser.cpp
-  src/perception_utils.cpp)
+  src/perception_utils.cpp
+  src/skill_policy_client.cpp)
 target_include_directories(embodied_core PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 target_link_libraries(embodied_core PUBLIC ${OpenCV_LIBRARIES} CURL::libcurl)
 
 add_executable(object_detector src/object_detector_node.cpp)
-target_link_libraries(object_detector embodied_core ${OpenCV_LIBRARIES})
+target_link_libraries(object_detector embodied_core ${OpenCV_LIBRARIES} onnxruntime)
 ament_target_dependencies(object_detector
-  cv_bridge message_filters rclcpp sensor_msgs vision_msgs)
+  cv_bridge message_filters rcl_interfaces rclcpp sensor_msgs std_msgs vision_msgs)
 
 add_executable(find_object_server src/find_object_server.cpp)
 target_link_libraries(find_object_server embodied_core)
@@ -47,6 +64,9 @@ install(TARGETS embodied_core
   LIBRARY DESTINATION lib)
 install(TARGETS object_detector find_object_server
   DESTINATION lib/${PROJECT_NAME})
+install(DIRECTORY "${ONNXRUNTIME_ROOT}/lib/"
+  DESTINATION lib
+  FILES_MATCHING PATTERN "libonnxruntime.so*")
 install(DIRECTORY include/ DESTINATION include)
 install(DIRECTORY config launch DESTINATION share/${PROJECT_NAME})
 
@@ -58,6 +78,8 @@ if(BUILD_TESTING)
   target_link_libraries(test_perception_utils embodied_core ${OpenCV_LIBRARIES})
   ament_add_gtest(test_instruction_parser test/test_instruction_parser.cpp)
   target_link_libraries(test_instruction_parser embodied_core)
+  ament_add_gtest(test_skill_policy_client test/test_skill_policy_client.cpp)
+  target_link_libraries(test_skill_policy_client embodied_core)
 endif()
 
 ament_export_include_directories(include)
