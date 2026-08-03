@@ -32,6 +32,7 @@ find_package(std_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
+find_package(turtlebot3_embodied_navigation REQUIRED)
 find_package(vision_msgs REQUIRED)
 find_package(gz_msgs_vendor REQUIRED)
 find_package(gz-msgs REQUIRED)
@@ -111,6 +112,15 @@ target_link_libraries(house_hard_negative_generator
 ament_target_dependencies(house_hard_negative_generator
   cv_bridge rclcpp sensor_msgs)
 
+add_executable(vla_oracle_dataset_generator src/vla_oracle_dataset_generator.cpp)
+target_link_libraries(vla_oracle_dataset_generator
+  ${OpenCV_LIBRARIES}
+  turtlebot3_embodied_navigation::embodied_core
+  gz-msgs::gz-msgs
+  gz-transport::gz-transport)
+ament_target_dependencies(vla_oracle_dataset_generator
+  cv_bridge rclcpp sensor_msgs)
+
 set(OBSTACLE_LIBS
   obstacles
   obstacle1
@@ -134,6 +144,7 @@ install(TARGETS
   dataset_utils
   gso_dataset_generator
   house_hard_negative_generator
+  vla_oracle_dataset_generator
   house_perception_acceptance
   final_perception_acceptance
   obstacles

@@ -37,7 +37,7 @@
   <depend>tf2_geometry_msgs</depend>
   <depend>tf2_ros</depend>
   <depend>vision_msgs</depend>
-  <exec_depend>turtlebot3_embodied_navigation</exec_depend>
+  <depend>turtlebot3_embodied_navigation</depend>
   <test_depend>ament_cmake_gtest</test_depend>
   <export>
     <build_type>ament_cmake</build_type>
