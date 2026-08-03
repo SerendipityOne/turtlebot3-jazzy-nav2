@@ -17,6 +17,30 @@ struct TargetSpec
   std::string room;
 };
 
+enum class TaskStage
+{
+  SEARCH,
+  APPROACH,
+  VERIFY,
+  DONE,
+  FAIL,
+};
+
+struct StageContext
+{
+  std::string outcome;
+  double coverage_ratio;
+  double detection_match_ratio;
+  double target_distance_m;
+};
+
+struct StagePlan
+{
+  TaskStage stage;
+  std::string stage_instruction;
+  std::string reason;
+};
+
 // 构造符合 OpenAI Responses API 严格 JSON Schema 约束的请求体。
 std::string build_responses_request(
   const std::string & model,
@@ -34,6 +58,11 @@ TargetSpec parse_target_json(
   const std::vector<std::string> & allowed_colors,
   const std::vector<std::string> & allowed_rooms);
 
+std::string task_stage_name(TaskStage stage);
+StagePlan parse_stage_plan_json(
+  const std::string & response_body, const TargetSpec & target,
+  const std::vector<TaskStage> & allowed_stages);
+
 class OpenAiInstructionParser
 {
 public:
@@ -44,8 +73,12 @@ public:
     std::vector<std::string> allowed_rooms);
 
   TargetSpec parse(const std::string & instruction) const;
+  StagePlan plan_next_stage(
+    const std::string & instruction, const TargetSpec & target, const StageContext & context,
+    const std::vector<TaskStage> & allowed_stages) const;
 
 private:
+  std::string request_output(const std::string & payload) const;
   std::string api_base_;
   std::string model_;
   std::string api_key_;

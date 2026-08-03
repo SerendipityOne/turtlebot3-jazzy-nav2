@@ -1,0 +1,8 @@
+name: tb3-vla
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  - pip:
+      - "lerobot[smolvla]==0.6.1"

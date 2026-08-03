@@ -13,6 +13,7 @@
   <depend>libcurl_vendor</depend>
   <depend>message_filters</depend>
   <depend>nav2_msgs</depend>
+  <depend>nav_msgs</depend>
   <depend>nlohmann-json-dev</depend>
   <depend>rcl_interfaces</depend>
   <depend>rclcpp</depend>

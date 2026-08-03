@@ -152,4 +152,20 @@ TEST(InstructionParser, ReportsInvalidTargetOutputText)
   }
 }
 
+TEST(InstructionParser, AcceptsOnlyAllowedContinuousStage)
+{
+  const turtlebot3_embodied_navigation::TargetSpec target{"ball", "red", "unknown"};
+  const auto plan = turtlebot3_embodied_navigation::parse_stage_plan_json(
+    R"({"stage":"approach","reason":"stable target is visible"})", target,
+    {turtlebot3_embodied_navigation::TaskStage::APPROACH});
+
+  EXPECT_EQ(plan.stage, turtlebot3_embodied_navigation::TaskStage::APPROACH);
+  EXPECT_EQ(plan.stage_instruction, "approach for red ball");
+  EXPECT_THROW(
+    turtlebot3_embodied_navigation::parse_stage_plan_json(
+      R"({"stage":"done","reason":"skip verification"})", target,
+      {turtlebot3_embodied_navigation::TaskStage::APPROACH}),
+    std::invalid_argument);
+}
+
 }  // namespace

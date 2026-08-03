@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cctype>
 #include <chrono>
+#include <cmath>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -99,6 +100,16 @@ std::string join(const std::vector<std::string> & values)
     result += values[index];
   }
   return result;
+}
+
+std::vector<std::string> stage_names(const std::vector<TaskStage> & stages)
+{
+  std::vector<std::string> names;
+  names.reserve(stages.size());
+  for (const TaskStage stage : stages) {
+    names.push_back(task_stage_name(stage));
+  }
+  return names;
 }
 
 std::string extract_completed_response_output_text(const nlohmann::json & body)
@@ -238,6 +249,43 @@ std::string extract_sse_output_text(const std::string & response_body)
   throw std::runtime_error("Responses API response has no output_text");
 }
 
+std::string build_stage_responses_request(
+  const std::string & model, const std::string & instruction, const TargetSpec & target,
+  const StageContext & context, const std::vector<TaskStage> & allowed_stages)
+{
+  const std::vector<std::string> allowed_names = stage_names(allowed_stages);
+  const std::string system_prompt =
+    "Plan exactly one safe object-search stage. Return only the JSON schema. "
+    "The target contract is class=" + target.object_class + ", color=" + target.color +
+    ", room=" + target.room + ". Allowed stage values: " + join(allowed_names) +
+    ". Do not output coordinates, velocities, or any field outside the schema.";
+  const nlohmann::json schema = {
+    {"type", "object"},
+    {"properties", {
+      {"stage", {{"type", "string"}, {"enum", allowed_names}}},
+      {"reason", {{"type", "string"}, {"minLength", 1}}}}},
+    {"required", nlohmann::json::array({"stage", "reason"})},
+    {"additionalProperties", false}};
+  const nlohmann::json context_json = {
+    {"instruction", instruction},
+    {"previous_outcome", context.outcome},
+    {"coverage_ratio", context.coverage_ratio},
+    {"detection_match_ratio", context.detection_match_ratio},
+    {"target_distance_m", context.target_distance_m}};
+  const nlohmann::json request = {
+    {"model", model},
+    {"instructions", system_prompt},
+    {"input", context_json.dump()},
+    {"store", false},
+    {"stream", false},
+    {"text", {{"format", {
+      {"type", "json_schema"},
+      {"name", "find_object_stage"},
+      {"strict", true},
+      {"schema", schema}}}}}};
+  return request.dump();
+}
+
 }  // namespace
 
 std::string build_responses_request(
@@ -315,6 +363,48 @@ TargetSpec parse_target_json(
   return target;
 }
 
+std::string task_stage_name(const TaskStage stage)
+{
+  switch (stage) {
+    case TaskStage::SEARCH: return "search";
+    case TaskStage::APPROACH: return "approach";
+    case TaskStage::VERIFY: return "verify";
+    case TaskStage::DONE: return "done";
+    case TaskStage::FAIL: return "fail";
+  }
+  throw std::invalid_argument("unknown task stage");
+}
+
+StagePlan parse_stage_plan_json(
+  const std::string & response_body, const TargetSpec & target,
+  const std::vector<TaskStage> & allowed_stages)
+{
+  if (allowed_stages.empty()) {
+    throw std::invalid_argument("stage planner requires at least one allowed stage");
+  }
+  std::string stage_name;
+  std::string reason;
+  try {
+    const auto json = nlohmann::json::parse(response_body);
+    stage_name = json.at("stage").get<std::string>();
+    reason = json.at("reason").get<std::string>();
+  } catch (const nlohmann::json::exception &) {
+    throw std::invalid_argument("Responses API output_text is not valid stage JSON");
+  }
+  if (reason.empty()) {
+    throw std::invalid_argument("stage planner reason must not be empty");
+  }
+  for (const TaskStage stage : allowed_stages) {
+    if (stage_name == task_stage_name(stage)) {
+      return StagePlan{
+        stage,
+        task_stage_name(stage) + " for " + target.color + " " + target.object_class,
+        reason};
+    }
+  }
+  throw std::invalid_argument("stage is outside the allowed transition set");
+}
+
 OpenAiInstructionParser::OpenAiInstructionParser(
   std::string api_base, std::string model, std::string api_key,
   std::vector<std::string> allowed_classes,
@@ -341,6 +431,28 @@ TargetSpec OpenAiInstructionParser::parse(const std::string & instruction) const
   const std::string payload = build_responses_request(
     model_, instruction, allowed_classes_, allowed_colors_, allowed_rooms_);
 
+  return parse_target_json(
+    request_output(payload), allowed_classes_, allowed_colors_, allowed_rooms_);
+}
+
+StagePlan OpenAiInstructionParser::plan_next_stage(
+  const std::string & instruction, const TargetSpec & target, const StageContext & context,
+  const std::vector<TaskStage> & allowed_stages) const
+{
+  if (instruction.empty() || !std::isfinite(context.coverage_ratio) ||
+    !std::isfinite(context.detection_match_ratio) || !std::isfinite(context.target_distance_m) ||
+    context.coverage_ratio < 0.0 || context.coverage_ratio > 1.0 ||
+    context.detection_match_ratio < 0.0 || context.detection_match_ratio > 1.0)
+  {
+    throw std::invalid_argument("stage planning context is invalid");
+  }
+  const std::string payload = build_stage_responses_request(
+    model_, instruction, target, context, allowed_stages);
+  return parse_stage_plan_json(request_output(payload), target, allowed_stages);
+}
+
+std::string OpenAiInstructionParser::request_output(const std::string & payload) const
+{
   std::string last_error;
   for (int attempt = 0; attempt < 3; ++attempt) {
     CURL * curl = curl_easy_init();
@@ -381,8 +493,7 @@ TargetSpec OpenAiInstructionParser::parse(const std::string & instruction) const
           "Responses API returned unsupported content (HTTP " + std::to_string(status) +
           ", Content-Type: " + response.content_type + ")");
       }
-      return parse_target_json(
-        extract_responses_output_text(response.body), allowed_classes_, allowed_colors_, allowed_rooms_);
+      return extract_responses_output_text(response.body);
     } catch (const std::exception & error) {
       last_error = error.what();
     }

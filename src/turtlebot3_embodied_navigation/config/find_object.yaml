@@ -8,6 +8,21 @@ find_object_server:
     navigation_timeout: 90.0
     verification_timeout: 5.0
     maximum_candidates: 20
+    # discrete_skill retains the baseline; continuous_local_goal makes VLA propose bounded local goals.
+    policy_mode: disabled
+    policy_interface: discrete_skill
+    policy_endpoint: http://127.0.0.1:8089/select_action
+    continuous_policy_endpoint: http://127.0.0.1:8089/predict_local_goal
+    policy_timeout_milliseconds: 1000
+    # Calibrate both values from the held-out VLA validation set before active mode.
+    policy_max_prototype_distance: 1.0
+    policy_min_prototype_gap: 0.1
+    policy_image_max_age: 1.0
+    detection_max_age: 1.0
+    maximum_policy_decisions: 30
+    maximum_planner_stages: 8
+    maximum_local_goals_per_stage: 30
+    camera_topic: /camera/color/image_raw
     map_frame: map
     robot_frame: base_link
     # x, y, yaw triples. Replace these coordinates after creating a new map.

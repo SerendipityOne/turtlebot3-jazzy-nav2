@@ -11,7 +11,8 @@ find_package(CURL REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(message_filters REQUIRED)
 find_package(nav2_msgs REQUIRED)
-find_package(OpenCV REQUIRED COMPONENTS core dnn imgproc)
+find_package(nav_msgs REQUIRED)
+find_package(OpenCV REQUIRED COMPONENTS core dnn imgcodecs imgproc)
 find_package(rcl_interfaces REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
@@ -41,7 +42,8 @@ add_library(embodied_core
   src/detection_history.cpp
   src/instruction_parser.cpp
   src/perception_utils.cpp
-  src/skill_policy_client.cpp)
+  src/skill_policy_client.cpp
+  src/vla_policy_state.cpp)
 target_include_directories(embodied_core PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
@@ -55,7 +57,7 @@ ament_target_dependencies(object_detector
 add_executable(find_object_server src/find_object_server.cpp)
 target_link_libraries(find_object_server embodied_core)
 ament_target_dependencies(find_object_server
-  geometry_msgs nav2_msgs rclcpp rclcpp_action tf2 tf2_geometry_msgs tf2_ros
+  cv_bridge geometry_msgs nav2_msgs nav_msgs rclcpp rclcpp_action sensor_msgs tf2 tf2_geometry_msgs tf2_ros
   turtlebot3_embodied_interfaces vision_msgs)
 
 install(TARGETS embodied_core
@@ -80,6 +82,8 @@ if(BUILD_TESTING)
   target_link_libraries(test_instruction_parser embodied_core)
   ament_add_gtest(test_skill_policy_client test/test_skill_policy_client.cpp)
   target_link_libraries(test_skill_policy_client embodied_core)
+  ament_add_gtest(test_vla_policy_state test/test_vla_policy_state.cpp)
+  target_link_libraries(test_vla_policy_state embodied_core)
 endif()
 
 ament_export_include_directories(include)
