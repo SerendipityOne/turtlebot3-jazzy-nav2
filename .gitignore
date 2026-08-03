@@ -19,6 +19,7 @@
 
 *.pyc
 __pycache__/
+.pytest_cache/
 *.swp
 *~
 .DS_Store
