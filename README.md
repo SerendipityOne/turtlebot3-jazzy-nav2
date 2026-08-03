@@ -16,6 +16,7 @@
 - [2D SLAM 与 Nav2 优化学习指南](docs/2d-slam-nav2-learning-guide.md)：Cartographer/Slam Toolbox A/B、SmacPlanner2D 和 MPPI 的原理与配置。
 - [实验记录模板](docs/experiment-record.md)：记录输入、参数校验值、固定 waypoint 和量化结果。
 - [具身找球运行手册](docs/embodied-object-navigation-workflow.md)：使用已验证的单类 ball 模型运行语言找物与 Nav2 接近闭环。
+- [分层 SmolVLA 找球与导航流程](docs/hierarchical-smolvla-navigation-workflow.md)：从 Gazebo Oracle 数据、质量门禁、SmolVLA 训练到 Shadow/Active 安全验收。
 
 ## 环境要求
 
